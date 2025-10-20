@@ -2,7 +2,6 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
 COPY package*.json ./
 
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
@@ -13,17 +12,13 @@ RUN export NVM_DIR="$HOME/.nvm" && \
     nvm use 18
 
 
-# Устанавливаем зависимости
 RUN npm ci
 
 
-# Копируем исходный код
 COPY . .
 
-# Собираем приложение
 RUN npm run build
 
-# Production stage
 FROM nginx:stable-alpine
 
 COPY --from=build /dist /usr/share/nginx/html

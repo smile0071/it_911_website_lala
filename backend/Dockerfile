@@ -1,11 +1,10 @@
-FROM python:3.11.9-slim
+FROM python:latest
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
 COPY . .
 
-# Указываем рабочую директорию src, где находится main.py
 WORKDIR ./src
 
 CMD ["python", "main.py"]
