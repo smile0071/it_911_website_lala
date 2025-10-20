@@ -5,8 +5,17 @@ WORKDIR /app
 # Копируем package.json и package-lock.json
 COPY package*.json ./
 
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+
+RUN export NVM_DIR="$HOME/.nvm" && \
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
+    nvm install 18 && \
+    nvm use 18
+
+
 # Устанавливаем зависимости
 RUN npm ci
+
 
 # Копируем исходный код
 COPY . .
