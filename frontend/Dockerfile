@@ -1,7 +1,5 @@
 FROM node:18-alpine AS build
 
-WORKDIR /app
-
 COPY package*.json ./
 
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
