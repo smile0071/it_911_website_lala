@@ -5,4 +5,7 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD [ "python", "main.py" ]
+# Указываем рабочую директорию src, где находится main.py
+WORKDIR /app/src
+
+CMD ["python", "main.py"]

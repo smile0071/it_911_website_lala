@@ -14,15 +14,27 @@ services:
       - frontend
     networks:
       - dev
+    restart: unless-stopped
 
   backend:
     build:
       context: ./backend
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - SECRET_KEY=${SECRET_KEY}
+      - ACCESS_TIME=${ACCESS_TIME}
+      - REFRESH_TIME=${REFRESH_TIME}
     networks:
       - dev
+    restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
     networks:
       - dev
+    restart: unless-stopped

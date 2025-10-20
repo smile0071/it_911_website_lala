@@ -1,10 +1,20 @@
 FROM node:alpine as build
 
-COPY package.json package.json
-RUN npm install
+WORKDIR /app
+
+# Копируем package.json и package-lock.json
+COPY package*.json ./
+
+# Устанавливаем зависимости
+RUN npm ci
+
+# Копируем исходный код
 COPY . .
+
+# Собираем приложение
 RUN npm run build
 
+# Production stage
 FROM nginx:stable-alpine
 
 COPY --from=build /dist /usr/share/nginx/html
