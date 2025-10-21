@@ -34,12 +34,14 @@ const Header = () => {
       <nav className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <motion.div 
-            className="text-2xl font-bold text-blue-600"
+          <motion.a 
+            href="/"
+            className="flex items-center gap-3"
             whileHover={{ scale: 1.05 }}
           >
-            IT911
-          </motion.div>
+            <img src="/logo.svg" alt="IT911" className="h-8 md:h-10" />
+            <span className="sr-only">IT911</span>
+          </motion.a>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">

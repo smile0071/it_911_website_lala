@@ -5,22 +5,128 @@ import { Send, Phone, Mail, MapPin, Clock, MessageCircle } from 'lucide-react';
 import { mockData } from '../mock';
 import { useToast } from '../hooks/use-toast';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
 const ContactForm = () => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    service: '',
+    phone: '',
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
+  const resetForm = () => {
+  setFormData({ name: '', email: '', phone: '', message: '' });
+  setErrors({});
+  };
+
+  // Format phone while typing:
+  const formatPhone = (input) => {
+    if (!input) return '';
+    // remove all except digits and plus
+    const cleanedAll = input.replace(/[^\d+]/g, ''); // may include leading +
+    const digitsOnly = input.replace(/\D/g, '');
+
+    // Detect variants
+    const startsWithPlus998 = cleanedAll.startsWith('+998');
+    const startsWith998 = digitsOnly.startsWith('998');
+
+    // If user types a local number starting with '9' (e.g. 90...), auto-prepend 998 and format to +998 ...
+    if (!startsWithPlus998 && !startsWith998 && digitsOnly.startsWith('9')) {
+      // treat as if user entered 998 + rest
+      const rest = (digitsOnly.length > 0) ? digitsOnly.slice(1) : '';
+      // build full digits after country code: we want after removing leading '9' we still keep operator+rest
+      // but simpler: prepend '998' to the original digits (so '90...' -> '99890...')
+      const full = '998' + digitsOnly;
+      const afterCC = full.slice(3); // digits after '998'
+      const p1 = afterCC.slice(0, 2);
+      const p2 = afterCC.slice(2, 5);
+      const p3 = afterCC.slice(5, 7);
+      const p4 = afterCC.slice(7, 9);
+      const parts = [];
+      if (p1) parts.push(p1);
+      if (p2) parts.push(p2);
+      if (p3) parts.push(p3);
+      if (p4) parts.push(p4);
+      return '+998' + (parts.length ? ' ' + parts.join(' ') : '');
+    }
+
+    // Treat numbers starting with '+998' or '998' as international and format to "+998 90 123 45 67"
+    if (startsWithPlus998 || startsWith998) {
+      const rest = digitsOnly.slice(3); // remove country code
+      const p1 = rest.slice(0, 2);
+      const p2 = rest.slice(2, 5);
+      const p3 = rest.slice(5, 7);
+      const p4 = rest.slice(7, 9);
+      const parts = [];
+      if (p1) parts.push(p1);
+      if (p2) parts.push(p2);
+      if (p3) parts.push(p3);
+      if (p4) parts.push(p4);
+      return '+998' + (parts.length ? ' ' + parts.join(' ') : '');
+    }
+
+    // Local formatting: 90 123 45 67 (group 2-3-2-2)
+    const digits = digitsOnly;
+    const g1 = digits.slice(0, 2);
+    const g2 = digits.slice(2, 5);
+    const g3 = digits.slice(5, 7);
+    const g4 = digits.slice(7, 9);
+    const parts = [];
+    if (g1) parts.push(g1);
+    if (g2) parts.push(g2);
+    if (g3) parts.push(g3);
+    if (g4) parts.push(g4);
+    return parts.join(' ');
+  };
+
+  // Ensure +998 is present on blur for local numbers or format digit-only 998... entries
+  const handlePhoneBlur = () => {
+    const current = (formData.phone || '').trim();
+    if (!current) return;
+
+    const digitsOnly = current.replace(/\D/g, '');
+
+    // If user entered local 9-digit number like "90 123 45 67" -> add country code
+    if (!current.startsWith('+998') && digitsOnly.length === 9) {
+      // prepend 998 and format
+      const newVal = formatPhone('998' + digitsOnly);
+      setFormData(prev => ({ ...prev, phone: newVal }));
+      return;
+    }
+
+    // If user entered digits-only international form like "998901234567", format it
+    if (!current.startsWith('+') && digitsOnly.startsWith('998') && digitsOnly.length === 12) {
+      const newVal = formatPhone(digitsOnly);
+      setFormData(prev => ({ ...prev, phone: newVal }));
+      return;
+    }
+    // Otherwise, if they typed "998..." with separators, ensure formatting
+    if (digitsOnly.startsWith('998') && !current.startsWith('+998')) {
+      const newVal = formatPhone(digitsOnly);
+      setFormData(prev => ({ ...prev, phone: newVal }));
+    }
+  };
+
+  // Auto-insert +998 on focus if the field is empty (so user doesn't have to type country code)
+  const handlePhoneFocus = () => {
+    const current = (formData.phone || '').trim();
+    if (!current) {
+      setFormData(prev => ({ ...prev, phone: '+998 ' }));
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'phone') {
+      const formatted = formatPhone(value);
+      setFormData(prev => ({ ...prev, [name]: formatted }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     
     // Clear error when user starts typing
     if (errors[name]) {
@@ -39,6 +145,41 @@ const ContactForm = () => {
       newErrors.email = 'Email обязателен для заполнения';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Неверный формат email';
+    }
+
+    // Phone validation:
+    // - If value starts with "+998" require exact spaced format OR accept digits-only starting with "998" and length 12
+    // - Otherwise validate using provided helper (digits-only length and allowed separators)
+    const uzPhoneRegex = /^\+998\s\d{2}\s\d{3}\s\d{2}\s\d{2}$/;
+    const digitsOnly = formData.phone.replace(/\D/g, '');
+
+    const validatePhone = (phone) => {
+      // phone без +998
+      const digits = phone.replace(/[^\d]/g, "");
+      // Длина номера (без пробелов и прочего)
+      if (digits.length < 9 || digits.length > 12) {
+        return false;
+      }
+      const re = /^[0-9\s\-()]{9,12}$/;
+      return re.test(String(phone));
+    };
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Номер телефона обязателен для заполнения';
+    } else {
+      // Accept "+998 90 123 45 67" OR "998901234567" (digits-only) or local variants like "90 123 45 67"
+      if (formData.phone.startsWith('+998')) {
+        if (!uzPhoneRegex.test(formData.phone)) {
+          newErrors.phone = 'Номер телефона должен быть в формате +998 90 123 45 67 (с пробелами)';
+        }
+      } else if (digitsOnly.startsWith('998')) {
+        // digits-only international form: must be exactly 12 digits (998 + 9)
+        if (digitsOnly.length !== 12) {
+          newErrors.phone = 'Номер телефона должен содержать 12 цифр для кода 998 (например: 998901234567 или +998 90 123 45 67)';
+        }
+      } else if (!validatePhone(formData.phone)) {
+        newErrors.phone = 'Неверный формат номера. Либо +998 90 123 45 67, либо локально: 90 123 45 67';
+      }
     }
     
     if (!formData.message.trim()) {
@@ -75,29 +216,36 @@ const ContactForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const result = await submitForm(formData);
-      
-      if (result.success) {
-        toast({
-          title: "Заявка отправлена!",
-          description: result.message,
-        });
-        
-        // Reset form
-        setFormData({ name: '', email: '', service: '', message: '' });
+      const isSuccess = result?.success ?? true;
+
+      if (!isSuccess) {
+        throw new Error(result?.message || 'Ошибка отправки заявки');
       }
+
+      toast({
+        title: "Заявка отправлена!",
+        description: result?.message || "Спасибо! Мы свяжемся с вами в течение часа.",
+      });
+
+      
+
+      // Clear form after confirmed success
+      resetForm();
     } catch (error) {
+      console.error('Submit error:', error);
       toast({
         title: "Ошибка отправки",
         description: error.message || "Попробуйте еще раз или свяжитесь с нами по телефону",
         variant: "destructive",
       });
+      // keep form values so user can retry
     } finally {
       setIsSubmitting(false);
     }
@@ -186,24 +334,27 @@ const ContactForm = () => {
               </div>
 
               <div>
-                <label htmlFor="service" className="block text-sm font-medium mb-2">
-                  Интересующая услуга
+                <label htmlFor="phone" className="block text-sm font-medium mb-2">
+                  Номер телефона *
                 </label>
-                <select
-                  id="service"
-                  name="service"
-                  value={formData.service}
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-white"
-                >
-                  <option value="" className="text-gray-900">Выберите услугу</option>
-                  <option value="website" className="text-gray-900">Создание веб-сайта</option>
-                  <option value="crm" className="text-gray-900">CRM-система</option>
-                  <option value="bot" className="text-gray-900">Телеграм-бот</option>
-                  <option value="complex" className="text-gray-900">Комплексное решение</option>
-                </select>
+                  onFocus={handlePhoneFocus}
+                  onBlur={handlePhoneBlur}
+                  className={`w-full px-4 py-3 bg-white/20 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-white placeholder-gray-300 ${
+                    errors.phone ? 'border-red-500' : 'border-white/30'
+                  }`}
+                  placeholder="+998 90 123 45 67"
+                />
+                {errors.phone && (
+                  <p className="mt-1 text-sm text-red-400">{errors.phone}</p>
+                )}
               </div>
-
+            
               <div>
                 <label htmlFor="message" className="block text-sm font-medium mb-2">
                   Сообщение *
@@ -223,6 +374,7 @@ const ContactForm = () => {
                   <p className="mt-1 text-sm text-red-400">{errors.message}</p>
                 )}
               </div>
+       
 
               <motion.button
                 type="submit"
@@ -320,7 +472,6 @@ const ContactForm = () => {
                 <div>
                   <h4 className="font-semibold text-white mb-1">Часы работы</h4>
                   <p className="text-gray-300">{mockData.contact.workingHours}</p>
-                  <p className="text-sm text-gray-400">По Московскому времени</p>
                 </div>
               </motion.div>
 
@@ -335,22 +486,14 @@ const ContactForm = () => {
                 <div>
                   <h4 className="font-semibold text-white mb-1">Адрес</h4>
                   <p className="text-gray-300">{mockData.contact.address}</p>
-                  <p className="text-sm text-gray-400">Работаем удалённо по всей России</p>
+                  <p className="text-sm text-gray-400">Работаем по всему Узбекистану</p>
                 </div>
               </motion.div>
             </div>
 
             {/* Quick action buttons */}
             <div className="pt-6 space-y-4">
-              <motion.a
-                href={`tel:${mockData.contact.phone.replace(/\s/g, '').replace(/[()]/g, '')}`}
-                className="block w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold text-center transition-colors"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                Позвонить сейчас
-              </motion.a>
-              
+                          
               <motion.a
                 href={`https://t.me/${mockData.contact.social.telegram.replace('@', '')}`}
                 target="_blank"

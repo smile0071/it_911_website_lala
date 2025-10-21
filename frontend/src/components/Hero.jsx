@@ -1,10 +1,69 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Parallax } from 'react-scroll-parallax';
-import Spline from '@splinetool/react-spline';
 import { ArrowRight } from 'lucide-react';
 
 const Hero = () => {
+  const vantaRef = useRef(null);
+  const vantaEffect = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return; // SSR safety
+
+    let attempts = 0;
+    const maxAttempts = 12;
+    let retryTimer = null;
+
+    const tryInit = () => {
+      attempts += 1;
+      if (vantaEffect.current) return;
+
+      if (window.VANTA && window.VANTA.GLOBE && vantaRef.current) {
+        try {
+          vantaEffect.current = window.VANTA.GLOBE({
+            el: vantaRef.current,
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.0,
+            minWidth: 200.0,
+            scale: 1.0,
+            scaleMobile: 1.0,
+            color: 0x3b82f6,
+            color2: 0xf97316,
+            backgroundColor: 0xffffff,
+            size: 0.8,
+          });
+          // success
+        } catch (err) {
+          console.error('VANTA init error:', err);
+          // try again later
+          scheduleRetry();
+        }
+      } else {
+        if (attempts <= maxAttempts) {
+          scheduleRetry();
+        } else {
+          console.warn('Vanta or THREE not available after retries.');
+        }
+      }
+    };
+
+    const scheduleRetry = () => {
+      retryTimer = setTimeout(tryInit, 500);
+    };
+
+    tryInit();
+
+    return () => {
+      if (retryTimer) clearTimeout(retryTimer);
+      if (vantaEffect.current && typeof vantaEffect.current.destroy === 'function') {
+        vantaEffect.current.destroy();
+        vantaEffect.current = null;
+      }
+    };
+  }, []);
+
   const scrollToContact = () => {
     const element = document.getElementById('contact');
     if (element) {
@@ -14,13 +73,8 @@ const Hero = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 to-white">
-      {/* Background Spline Animation */}
-      <div className="absolute inset-0 z-0">
-        <Spline
-          scene="https://prod.spline.design/NbVmy6DPLhY-5Lvg/scene.splinecode" 
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
+      {/* Background Vanta Globe */}
+      <div id="vanta-bg" ref={vantaRef} className="absolute inset-0 z-0" />
 
       {/* Hero Content */}
       <div className="container mx-auto px-6 relative z-10">
@@ -89,7 +143,7 @@ const Hero = () => {
 
           {/* Right side - additional space for 3D animation */}
           <div className="hidden md:block">
-            {/* This space allows the Spline animation to be more visible */}
+            {/* This space allows the background animation to be more visible */}
           </div>
         </div>
       </div>

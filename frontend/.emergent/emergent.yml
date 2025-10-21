@@ -1,0 +1,8 @@
+{
+  "env_image_name": "fastapi_react_mongo_shadcn_base_image_cloud_arm:release-04102025-8",
+  "project": {
+    "name": "IT 911 Site",
+    "version": "1.0.0",
+    "description": "IT support and services website"
+  }
+}

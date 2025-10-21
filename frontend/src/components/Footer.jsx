@@ -60,14 +60,6 @@ const Footer = () => {
                 <Mail size={20} />
               </motion.a>
               
-              <motion.a
-                href={`tel:${mockData.contact.phone.replace(/\s/g, '').replace(/[()]/g, '')}`}
-                className="w-12 h-12 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center transition-colors"
-                whileHover={{ scale: 1.1, rotate: 360 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Phone size={20} />
-              </motion.a>
             </div>
           </motion.div>
 

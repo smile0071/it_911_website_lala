@@ -20,8 +20,6 @@ export const mockData = {
         "Мобильная адаптация",
         "Высокая скорость загрузки"
       ],
-      price: "от 50 000 ₽",
-      duration: "от 2 недель"
     },
     {
       id: 2,
@@ -33,8 +31,6 @@ export const mockData = {
         "Аналитика и отчёты",
         "Интеграции с сервисами"
       ],
-      price: "от 80 000 ₽", 
-      duration: "от 3 недель"
     },
     {
       id: 3,
@@ -46,8 +42,6 @@ export const mockData = {
         "Автоответчик",
         "Приём платежей"
       ],
-      price: "от 25 000 ₽",
-      duration: "от 1 недели"
     }
   ],
 
@@ -83,39 +77,39 @@ export const mockData = {
   testimonials: [
     {
       id: 1,
-      name: "Андрей Петров",
-      company: "Строительная компания 'СтройМастер'",
-      text: "IT991 создала нам сайт и CRM-систему. За полгода количество заявок выросло в 3 раза, а менеджеры стали работать в 2 раза эффективнее.",
+      name: "",
+      company: "",
+      text: "",
       rating: 5,
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
+      avatar: ""
     },
     {
       id: 2,
-      name: "Мария Иванова", 
-      company: "Интернет-магазин 'Модный стиль'",
-      text: "Телеграм-бот полностью автоматизировал приём заказов. Теперь клиенты могут оформить покупку в любое время, а мы не теряем ни одной заявки.",
+      name: "", 
+      company: "",
+      text: "",
       rating: 5,
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b1c2?w=100&h=100&fit=crop&crop=face"
+      avatar: ""
     },
     {
       id: 3,
-      name: "Дмитрий Козлов",
-      company: "Консалтинговое агентство 'БизнесРост'", 
-      text: "Профессиональная команда, которая понимает бизнес-процессы. Сайт получился именно таким, как мы хотели - стильный и продающий.",
+      name: "",
+      company: "", 
+      text: "",
       rating: 5,
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
+      avatar: ""
     }
   ],
 
   // Contact information
   contact: {
-    phone: "+7 (999) 123-45-67",
-    email: "info@IT991.ru",
-    address: "Москва, ул. Тверская, д. 1, оф. 100",
+    phone: "+998 95 955 39 33",
+    email: "911.it@bk.ru",
+    address: "Chorsu MFY, 4 дом, 135 квартира",
     workingHours: "Пн-Пт: 9:00-18:00",
     social: {
-      telegram: "@IT991_team",
-      whatsapp: "+79991234567"
+      telegram: "",
+      whatsapp: ""
     }
   },
 

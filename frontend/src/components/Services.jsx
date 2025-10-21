@@ -101,11 +101,9 @@ const Services = () => {
                 {/* Price and Duration */}
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-500">Стоимость</span>
                     <span className="font-semibold text-gray-900">{service.price}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Срок</span>
                     <span className="font-semibold text-gray-900">{service.duration}</span>
                   </div>
                 </div>
