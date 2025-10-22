@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, Path, Body
 
@@ -52,13 +53,24 @@ async def create_lead(
 )
 async def list_leads(
         status: list[StatusEnum] = Query(default=None, description="Фильтр по Статусу"),
+        created_from: datetime = Query(default=None, description="Фильтр по Мин Созданной"),
+        created_to: datetime = Query(default=None, description="Фильтр по Мак Созданной"),
         target_id: uuid.UUID = Query(default=None, description="Фильтр по Таргету"),
-        sort_by: Sort = Query(default=Sort.desc, description="Сортировка"),
+        sort_by: list[Sort] = Query(default=Sort.desc, description="Сортировка"),
+        page: int = Query(default=1, ge=1, description="Страница"),
+        size: int = Query(default=1, ge=1, description="Размер Страницы"),
         user: User = Depends(get_current_user),
         db: AsyncSession = Depends(get_db)
 ):
     manager = LeadManager(db)
-    response = await manager.get_leads(status, target_id, sort_by)
+    response = await manager.get_leads(
+        status=status,
+        created_from=created_from,
+        created_to=created_to,
+        target_id=target_id,
+        sorts=sort_by,
+        page=page,
+        size=size    )
     return response
 
 

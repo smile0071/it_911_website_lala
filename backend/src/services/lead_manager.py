@@ -1,13 +1,25 @@
+import hashlib
+import json
 import uuid
+
 from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cache import redis_cache
+from configs import get_redis
+
 from exceptions import NotFound
+
 from filters.lead_filter import LeadFilter
-from models.lead import StatusEnum
+from filters.paginator import Paginator
+from filters.sorter import Sorter
+
+from models.lead import StatusEnum, Lead
+
 from repository.contact_repo import ContactRepository
 from repository.lead_repo import LeadRepository, LeadCommentRepository
+
 from schemas.base import Sort
 from schemas.lead import (
     LeadRequest,
@@ -15,7 +27,8 @@ from schemas.lead import (
     LeadCommentRequest,
     LeadCommentResponse,
     ListLeadResponse,
-    ListLeadCommentResponse, ChangeStatusRequest
+    ListLeadCommentResponse,
+    ChangeStatusRequest
 )
 
 
@@ -27,6 +40,8 @@ class LeadManager:
         self.repo = LeadRepository(db)
         self.comment_repo = LeadCommentRepository(db)
         self.contact_repo = ContactRepository(db)
+
+        self.cache = get_redis()
 
     async def create_lead(
             self,
@@ -80,13 +95,16 @@ class LeadManager:
             raise NotFound(f"Lead with id {lead_id} not found")
         return LeadResponse.model_validate(lead)
 
+    @redis_cache(prefix="leads:list", ttl=120)
     async def get_leads(
             self,
             status: list[StatusEnum] = None,
             target_id: uuid.UUID = None,
             created_from: datetime = None,
             created_to: datetime = None,
-            sort_order: Sort = Sort.desc
+            sorts: list[Sort] = None,
+            page: int = 1,
+            size: int = 50
     ):
         filters = LeadFilter(
             status,
@@ -94,14 +112,30 @@ class LeadManager:
             created_from,
             created_to
         )
+
+        sorters = []
+
+        for sort_by in sorts:
+            col, destination = sort_by.split(":")
+            col = getattr(Lead, col)
+            sorters.append((col, destination))
+
+        sorter = Sorter(
+            tuple(sorters)
+        )
+
+        paginator = Paginator(
+            page=page,
+            size=size
+        )
+
         leads = await self.repo.list(
-            filters
+            filters=filters,
+            sorter=sorter,
+            paginator=paginator,
         )
         return ListLeadResponse(
-            leads=[
-                LeadResponse.model_validate(lead)
-                for lead in leads
-            ]
+            **leads
         )
 
     async def add_comment(

@@ -3,6 +3,8 @@ from typing import List
 
 from pydantic import BaseModel, Field, field_validator
 
+from schemas.base import PaginationResponse
+
 
 class UserResponse(BaseModel):
     id: int
@@ -39,7 +41,7 @@ class UserCreateRequest(UserRequest):
         return value
 class UserListResponse(BaseModel):
     users: List[UserResponse]
-
+    pagination: PaginationResponse
     model_config = {
         "from_attributes": True
     }

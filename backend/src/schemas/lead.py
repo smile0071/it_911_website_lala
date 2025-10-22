@@ -4,6 +4,7 @@ from typing import List
 from pydantic import BaseModel, Field, EmailStr
 
 from models.lead import StatusEnum
+from schemas.base import PaginationResponse
 
 
 class LeadRequest(BaseModel):
@@ -53,6 +54,7 @@ class ChangeStatusRequest(BaseModel):
 
 class ListLeadResponse(BaseModel):
     leads: List[LeadResponse]
+    pagination: PaginationResponse
 
     model_config = {
         "from_attributes": True

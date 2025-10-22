@@ -57,8 +57,8 @@ class LeadRepository(BaseRepository):
         items = result.scalars().all()
 
         return {
-            "items": items,
-            "meta": paginator.to_dict()
+            "leads": items,
+            "pagination": paginator.to_dict()
         }
 
     async def get_by_id(

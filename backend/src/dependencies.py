@@ -1,9 +1,8 @@
-from contextlib import asynccontextmanager
-
-from fastapi import Depends
+from fastapi import Depends, Header
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from configs import BOT_SECRET
 from db.session import async_session
 from exceptions import Forbidden
 from services.auth_manager import AuthManager
@@ -35,3 +34,25 @@ async def get_superuser(
     if not user.is_superuser:
         raise Forbidden("Forbidden")
     return user
+
+
+async def verify_bot(
+        x_bot_token: str = Header(None)
+):
+    if x_bot_token != BOT_SECRET:
+        raise Forbidden("Forbidden")
+
+
+async def get_actor(
+        token: str = Depends(oauth2_scheme),
+        db: AsyncSession = Depends(get_db),
+        x_bot_token: str = Header(None),
+):
+    if x_bot_token:
+        await verify_bot(x_bot_token)
+        return None
+
+    if token:
+        actor = await get_current_user(token, db)
+        return actor
+    raise Forbidden("Forbidden")

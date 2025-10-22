@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from dependencies import get_current_user, get_db
 from models.user import User
+from schemas.base import Sort
 from schemas.contact import ContactRequest
 from services.contact_manager import ContactManager
 
@@ -25,11 +26,21 @@ async def create_contact(
 
 @router.get("/")
 async def get_contacts(
+        query: str = Query(None, alias="q"),
+        sort_by: list[Sort] = Query(default=Sort.desc, description="Сортировка"),
+        page: int = Query(default=1, ge=1, description="Страница"),
+        size: int = Query(default=1, ge=1, description="Размер Страницы"),
         user: User = Depends(get_current_user),
         db: AsyncSession = Depends(get_db)
 ):
+
     manager = ContactManager(db)
-    contacts = await manager.list()
+    contacts = await manager.list(
+        query=query,
+        page=page,
+        size=size,
+        sorts=sort_by
+    )
     return contacts
 
 

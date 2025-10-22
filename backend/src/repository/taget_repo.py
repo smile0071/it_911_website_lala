@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from models.target import TargetCompany
 from repository.base_repo import BaseRepository
+from repository.query_builder import QueryBuilder
 
 
 class TargetCompanyRepository(BaseRepository):
@@ -29,12 +30,28 @@ class TargetCompanyRepository(BaseRepository):
         return result.scalar_one_or_none()
 
     async def list(
-            self
+            self,
+            filters=None,
+            sorter=None,
+            paginator=None,
     ):
-        result = await self.db.execute(
-            select(TargetCompany)
+        stmt = select(TargetCompany)
+
+        builder = QueryBuilder(
+            stmt=stmt,
+            db=self.db,
+            filters=filters,
+            sorter=sorter,
+            paginator=paginator,
         )
-        return result.scalars().all()
+        stmt = await builder.build()
+        result = await self.db.execute(stmt)
+        items = result.scalars().all()
+
+        return {
+            "target_companies": items,
+            "pagination": paginator.to_dict()
+        }
 
     async def update(
             self,

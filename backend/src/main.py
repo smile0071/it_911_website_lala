@@ -10,8 +10,11 @@ from fastapi.middleware.gzip import GZipMiddleware
 from db.seeds.user import create_user
 from routers.auth import router as auth_router
 from routers.click import router as click_router
+from routers.contact import router as contact_router
+from routers.deal import router as deal_router
 from routers.lead import router as lead_router
 from routers.target import router as target_router
+from routers.telegram import router as telegram_router
 from routers.user import router as user_router
 
 
@@ -22,6 +25,7 @@ async def lifespan(app: FastAPI):
     yield
     print("Работа Завершилась")
 
+
 app = FastAPI(
     title="IT 911 API",
     description="IT 911 BackEnd API",
@@ -29,27 +33,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["localhost:3000", "http://localhost:3000", "http://95.182.118.118"],
-    
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],
 )
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.include_router(auth_router)
+app.include_router(contact_router)
 app.include_router(click_router)
+app.include_router(deal_router)
 app.include_router(lead_router)
 app.include_router(target_router)
+app.include_router(telegram_router)
 app.include_router(user_router)
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

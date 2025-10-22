@@ -2,6 +2,8 @@ from models.user import User
 from repository.base_repo import BaseRepository
 from sqlalchemy import select
 
+from repository.query_builder import QueryBuilder
+
 
 class UserRepository(BaseRepository):
     async def create(
@@ -55,8 +57,26 @@ class UserRepository(BaseRepository):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list(self):
-        result = await self.db.execute(
-            select(User)
+    async def list(
+            self,
+            filters=None,
+            sorter=None,
+            paginator=None,
+    ):
+        stmt = select(User)
+
+        builder = QueryBuilder(
+            stmt=stmt,
+            db=self.db,
+            filters=filters,
+            sorter=sorter,
+            paginator=paginator,
         )
-        return result.scalars().all()
+        stmt = await builder.build()
+        result = await self.db.execute(stmt)
+        items = result.scalars().all()
+
+        return {
+            "users": items,
+            "pagination": paginator.to_dict()
+        }

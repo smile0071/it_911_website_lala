@@ -20,5 +20,6 @@ class LeadFilter:
 
     def apply(self, stmt: Select):
         for f in self.filters:
-            f.apply(stmt)
+            stmt = f.apply(stmt)
+
         return stmt

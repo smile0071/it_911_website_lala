@@ -2,6 +2,7 @@ from sqlalchemy import select
 
 from models import Deal
 from repository.base_repo import BaseRepository
+from repository.query_builder import QueryBuilder
 
 
 class DealRepository(BaseRepository):
@@ -40,7 +41,24 @@ class DealRepository(BaseRepository):
 
     async def list(
             self,
-            lead_id,
-            status
+            filters=None,
+            sorter=None,
+            paginator=None
     ):
-        pass
+        stmt = select(Deal)
+
+        builder = QueryBuilder(
+            stmt=stmt,
+            db=self.db,
+            filters=filters,
+            sorter=sorter,
+            paginator=paginator,
+        )
+        stmt = await builder.build()
+        result = await self.db.execute(stmt)
+        items = result.scalars().all()
+
+        return {
+            "deals": items,
+            "pagination": paginator.to_dict()
+        }

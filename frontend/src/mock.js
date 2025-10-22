@@ -103,12 +103,12 @@ export const mockData = {
 
   // Contact information
   contact: {
-    phone: "+998 95 955 39 33",
+    phone: "+998 90 329 70 00",
     email: "911.it@bk.ru",
     address: "Chorsu MFY, 4 дом, 135 квартира",
     workingHours: "Пн-Пт: 9:00-18:00",
     social: {
-      telegram: "",
+      telegram: "@it911_uz_bot",
       whatsapp: ""
     }
   },

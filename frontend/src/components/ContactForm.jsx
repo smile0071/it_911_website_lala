@@ -5,8 +5,8 @@ import { Send, Phone, Mail, MapPin, Clock, MessageCircle } from "lucide-react";
 import { mockData } from "../mock";
 import { useToast } from "../hooks/use-toast";
 
-const BACKEND_URL =
-	process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
+const _raw = String(process.env.REACT_APP_BACKEND_URL || "https://it911.uz").trim();
+const BACKEND_URL = _raw.replace(/\s+/g, "").replace(/\/+$/, ""); 
 
 const ContactForm = () => {
 	const { toast } = useToast();
@@ -22,10 +22,11 @@ const ContactForm = () => {
 	}, []);
 
 	const [formData, setFormData] = useState({
-		name: "",
-		email: "",
-		phone: "",
-		message: "",
+		full_name: '',
+    	email: '',
+    	phone: '',
+    	company_name: '',
+    	company_info: '',
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [errors, setErrors] = useState({});
@@ -148,8 +149,8 @@ const ContactForm = () => {
 	const validateForm = () => {
 		const newErrors = {};
 
-		if (!formData.name.trim()) {
-			newErrors.name = "Имя обязательно для заполнения";
+		if (!formData.full_name.trim()) {
+			newErrors.full_name = "Ф.И.О. обязательно для заполнения";
 		}
 
 		if (!formData.email.trim()) {
@@ -158,9 +159,6 @@ const ContactForm = () => {
 			newErrors.email = "Неверный формат email";
 		}
 
-		// Phone validation:
-		// - If value starts with "+998" require exact spaced format OR accept digits-only starting with "998" and length 12
-		// - Otherwise validate using provided helper (digits-only length and allowed separators)
 		const uzPhoneRegex = /^\+998\s\d{2}\s\d{3}\s\d{2}\s\d{2}$/;
 		const digitsOnly = formData.phone.replace(/\D/g, "");
 
@@ -178,14 +176,12 @@ const ContactForm = () => {
 		if (!formData.phone.trim()) {
 			newErrors.phone = "Номер телефона обязателен для заполнения";
 		} else {
-			// Accept "+998 90 123 45 67" OR "998901234567" (digits-only) or local variants like "90 123 45 67"
 			if (formData.phone.startsWith("+998")) {
 				if (!uzPhoneRegex.test(formData.phone)) {
 					newErrors.phone =
-						"Номер телефона должен быть в формате +998 90 123 45 67 (с пробелами)";
+						"Номер телефона должен быть в формате +998 90 123 45 67";
 				}
 			} else if (digitsOnly.startsWith("998")) {
-				// digits-only international form: must be exactly 12 digits (998 + 9)
 				if (digitsOnly.length !== 12) {
 					newErrors.phone =
 						"Номер телефона должен содержать 12 цифр для кода 998 (например: 998901234567 или +998 90 123 45 67)";
@@ -196,35 +192,63 @@ const ContactForm = () => {
 			}
 		}
 
-		if (!formData.message.trim()) {
-			newErrors.message = "Сообщение обязательно для заполнения";
+    if (!formData.company_name.trim()) {
+			newErrors.company_name = "Название компании обязательно для заполнения";
+		}
+    
+		if (!formData.company_info.trim()) {
+			newErrors.company_info = "Информация о компании обязательна для заполнения";
 		}
 
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
 	};
 
-	// Real API submission instead of mock
+
 	const submitForm = async (formData) => {
+
+		const base = String(BACKEND_URL || "")
+			.trim()
+			.replace(/\s+/g, "")
+			.replace(/\/+$/, "")
+			.replace(/\/api$/i, "");
+
+		const endpoint = `${base}/api/leads/`; // guaranteed single /api/leads
+		console.log("Submitting to:", endpoint);
+
 		try {
-			const response = await fetch(`${BACKEND_URL}/api/contact`, {
+			const response = await fetch(endpoint, {
 				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(formData),
+				mode: "cors",
 			});
 
-			const data = await response.json();
+			const text = await response.text();
+			const ct = response.headers.get("content-type") || "";
+
+			let data = null;
+			if (ct.includes("application/json")) {
+				try {
+					data = JSON.parse(text);
+				} catch (e) {
+					console.warn("Failed to parse JSON response:", e, "raw:", text);
+					throw new Error("Сервер вернул некорректный JSON");
+				}
+			} else {
+				// non-JSON response — keep raw body for diagnostics
+				data = { raw: text };
+			}
 
 			if (!response.ok) {
-				throw new Error(data.detail || "Ошибка отправки заявки");
+				const msg = data?.detail || data?.message || data?.raw || `HTTPS ${response.status}`;
+				throw new Error(msg);
 			}
 
 			return data;
-		} catch (error) {
-			console.error("Form submission error:", error);
-			throw error;
+		} catch (err) { 
+			console.error("Form submission error:", err);
+			throw err;
 		}
 	};
 
@@ -254,54 +278,25 @@ const ContactForm = () => {
 					result?.message || "Спасибо! Мы свяжемся с вами в течение часа.",
 				duration: 5000,
 			});
-
-			// Показать временный success-баннер с сохранением ID таймаута
+// очистить форму только при успешной отправке
+			setFormData({ full_name: "", email: "", phone: "", company_name: "", company_info: "" });
+			setErrors({});
 			setShowSuccessBanner(true);
 			if (timeoutRef.current) clearTimeout(timeoutRef.current);
-			timeoutRef.current = setTimeout(() => {
-				setShowSuccessBanner(false);
-				timeoutRef.current = null;
-			}, 5000);
-			// для быстрой отладки
-			console.log("showSuccessBanner set true");
-		} catch (error) {
-			console.error("Submit error:", error);
+			timeoutRef.current = setTimeout(() => setShowSuccessBanner(false), 4000);
+			
+		} catch (err) {
+			console.error("Submit failed:", err);
+			toast({
+				title: "Ошибка отправки",
+				description: err?.message || "Сетевая ошибка. Попробуйте позже.",
+				variant: "destructive",
+				duration: 5000,
+			});
 
-			// Если API недоступен (сетевой/fetch error), показать симулированный баннер
-			const isNetworkError =
-				error instanceof TypeError ||
-				/failed to fetch/i.test(String(error.message));
-			if (isNetworkError) {
-				console.warn("API недоступен — показываем локальный success-баннер.");
-				toast({
-					title: "Тестовый режим",
-					description: "API недоступен — показываем баннер локально.",
-				});
-				setShowSuccessBanner(true);
-				if (timeoutRef.current) clearTimeout(timeoutRef.current);
-				timeoutRef.current = setTimeout(() => {
-					setShowSuccessBanner(false);
-					timeoutRef.current = null;
-				}, 5000);
-			} else {
-				toast({
-					title: "Ошибка отправки",
-					description:
-						error.message ||
-						"Попробуйте еще раз или свяжитесь с нами по телефону",
-					variant: "destructive",
-					duration: 5000,
-				});
-			}
 			// keep form values so user can retry
 		} finally {
 			setIsSubmitting(false);
-			setFormData({
-				name: "",
-				email: "",
-				phone: "",
-				message: "",
-			});
 		}
 	};
 
@@ -358,21 +353,21 @@ const ContactForm = () => {
 									htmlFor="name"
 									className="block text-sm font-medium mb-2"
 								>
-									Ваше имя *
+									Ваше ФИО *
 								</label>
 								<input
 									type="text"
-									id="name"
-									name="name"
-									value={formData.name}
+									id="full_name"
+									name="full_name"
+									value={formData.full_name}
 									onChange={handleChange}
 									className={`w-full px-4 py-3 bg-white/20 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-white placeholder-gray-300 ${
-										errors.name ? "border-red-500" : "border-white/30"
+										errors.full_name ? "border-red-500" : "border-white/30"
 									}`}
 									placeholder="Введите ваше имя"
 								/>
-								{errors.name && (
-									<p className="mt-1 text-sm text-red-400">{errors.name}</p>
+								{errors.full_name && (
+									<p className="mt-1 text-sm text-red-400">{errors.full_name}</p>
 								)}
 							</div>
 
@@ -424,26 +419,49 @@ const ContactForm = () => {
 								)}
 							</div>
 
+              <div>
+								<label
+									htmlFor="company_name"
+									className="block text-sm font-medium mb-2"
+								>
+									Название компании *
+								</label>
+								<input
+									type="text"
+									id="company_name"
+									name="company_name"
+									value={formData.company_name}
+									onChange={handleChange}
+									className={`w-full px-4 py-3 bg-white/20 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-white placeholder-gray-300 ${
+										errors.company_name ? "border-red-500" : "border-white/30"
+									}`}
+									placeholder="Введите название вашей компании"
+								/>
+								{errors.company_name && (
+									<p className="mt-1 text-sm text-red-400">{errors.company_name}</p>
+								)}
+							</div>
+
 							<div>
 								<label
-									htmlFor="message"
+									htmlFor="company_info"
 									className="block text-sm font-medium mb-2"
 								>
 									Сообщение *
 								</label>
 								<textarea
-									id="message"
-									name="message"
-									value={formData.message}
+									id="company_info"
+									name="company_info"
+									value={formData.company_info}
 									onChange={handleChange}
 									rows={4}
 									className={`w-full px-4 py-3 bg-white/20 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-white placeholder-gray-300 ${
-										errors.message ? "border-red-500" : "border-white/30"
+										errors.company_info ? "border-red-500" : "border-white/30"
 									}`}
 									placeholder="Расскажите о вашем проекте..."
 								/>
-								{errors.message && (
-									<p className="mt-1 text-sm text-red-400">{errors.message}</p>
+								{errors.company_info && (
+									<p className="mt-1 text-sm text-red-400">{errors.company_info}</p>
 								)}
 							</div>
 

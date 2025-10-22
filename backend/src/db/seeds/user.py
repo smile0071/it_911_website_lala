@@ -11,7 +11,7 @@ async def create_user():
                 await repo.create(
                     full_name="Admin",
                     username="admin",
-                    hashed_password=PasswordService().hash_password("1234"),
+                    password=PasswordService().hash_password("1234"),
                     is_superuser=True
                 )
                 print("Пользователь создан")

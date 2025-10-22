@@ -1,8 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cache import redis_cache
 from exceptions import Forbidden, NotFound, BadRequest
+from filters.paginator import Paginator
+from filters.sorter import Sorter
+from filters.user_filter import UserFilter
 from models.user import User
 from repository.user_repo import UserRepository
+from schemas.base import Sort
 from schemas.user import UserRequest, UserCreateRequest, UserResponse, UserListResponse
 from services.password_service import PasswordService
 
@@ -64,10 +69,40 @@ class UserManager:
             raise NotFound("User not found")
         await self.repo.delete(user)
 
+    @redis_cache(prefix="users:list", ttl=120)
     async def get_users(
-            self
+            self,
+            is_superuser: bool = None,
+            full_name: str = None,
+            sorts: list[Sort] = None,
+            page: int = 1,
+            size: int = 50
     ):
-        users = await self.repo.list()
+        filters = UserFilter(
+            is_superuser=is_superuser,
+            full_name=full_name,
+        )
+
+        sorters = []
+
+        for sort_by in sorts:
+            col, destination = sort_by.split(":")
+            col = getattr(User, col)
+            sorters.append((col, destination))
+
+        sorter = Sorter(
+            tuple(sorters)
+        )
+
+        paginator = Paginator(
+            page=page,
+            size=size
+        )
+        users = await self.repo.list(
+            filters=filters,
+            sorter=sorter,
+            paginator=paginator,
+        )
         return UserListResponse(
             users=[
                 UserResponse.model_validate(user)

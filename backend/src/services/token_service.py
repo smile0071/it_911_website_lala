@@ -37,18 +37,13 @@ class TokenService:
 
     def __validate_token(self, token: str) -> dict:
         try:
-            print("Я тут")
             return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
         except JWTError:
-            print("H")
             raise InvalidToken("Invalid Credentials")
 
     def validate(self, token: str, is_refresh: bool = False) -> dict:
         payload = self.__validate_token(token)
-        print(payload)
         if is_refresh is True and bool(payload.get("refresh")) is False:
-            print("Hello")
             raise InvalidToken("Invalid Credentials")
-        print(payload)
         return payload

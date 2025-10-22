@@ -2,6 +2,8 @@ from typing import List
 
 from pydantic import BaseModel, EmailStr, Field
 
+from schemas.base import PaginationResponse
+
 
 class ContactRequest(BaseModel):
     full_name: str = Field(max_length=512)
@@ -24,3 +26,4 @@ class ContactResponse(BaseModel):
 
 class ContactListResponse(BaseModel):
     contacts: List[ContactResponse]
+    pagination: PaginationResponse

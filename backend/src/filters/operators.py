@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Select
+from sqlalchemy import Column, Select, or_
 
 from exceptions import BadRequest
 from filters.base import BaseFilter
@@ -13,7 +13,18 @@ class LikeFilter(BaseFilter):
         if self.value:
             return stmt.where(self.column.ilike(f"%{self.value}%"))
         return stmt
+class SearchFilter:
+    """Фильтр для поиска по нескольким колонкам через OR"""
+    def __init__(self, columns: list, value: str | None):
+        self.columns = columns
+        self.value = value
 
+    def apply(self, stmt):
+        if not self.value:
+            return stmt
+        pattern = f"%{self.value}%"
+        stmt = stmt.where(or_(*(col.ilike(pattern) for col in self.columns)))
+        return stmt
 
 class EqualFilter(BaseFilter):
     def __init__(self, column: Column, value=None):
