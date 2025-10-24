@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cache import redis_cache
+# from cache import redis_cache
 
 from exceptions import NotFound
 
@@ -62,7 +62,7 @@ class ContactManager:
             raise NotFound(f"Contact {contact_id} not found")
         return contact
 
-    @redis_cache(prefix="contacts:list", ttl=120)
+    # @redis_cache(prefix="contacts:list", ttl=120)
     async def list(
             self,
             query: str = None,

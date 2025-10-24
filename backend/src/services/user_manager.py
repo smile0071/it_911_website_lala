@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cache import redis_cache
+# from cache import redis_cache
 from exceptions import Forbidden, NotFound, BadRequest
 from filters.paginator import Paginator
 from filters.sorter import Sorter
@@ -68,8 +68,8 @@ class UserManager:
         if not user:
             raise NotFound("User not found")
         await self.repo.delete(user)
-
-    @redis_cache(prefix="users:list", ttl=120)
+    #
+    # @redis_cache(prefix="users:list", ttl=120)
     async def get_users(
             self,
             is_superuser: bool = None,
