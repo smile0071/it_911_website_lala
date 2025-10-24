@@ -41,7 +41,7 @@ class LeadManager:
         self.comment_repo = LeadCommentRepository(db)
         self.contact_repo = ContactRepository(db)
 
-        self.cache = get_redis()
+        # self.cache = get_redis()
 
     async def create_lead(
             self,
